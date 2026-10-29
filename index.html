@@ -63,6 +63,15 @@ nav button.on{background:linear-gradient(90deg,#ffe27a,#f5c542)}
 <input id="q" placeholder="काहीही विचारा…" onkeydown="if(event.key==='Enter')send()"><button onclick="send()">➤</button>
 <input id="fi" type="file" accept="image/*" hidden onchange="pick(this)"></div></section>
 
+<section id="img" hidden>
+<label>काय चित्र हवं? (मराठी किंवा इंग्रजी)</label>
+<textarea id="ip" rows="3" placeholder="उदा. सूर्योदयाच्या वेळी आळंदीचं मंदिर, इंद्रायणी नदी"></textarea>
+<label>आकार</label><select id="isz"><option value="1024x1024">चौकोनी (WhatsApp/Insta)</option><option value="768x1344">उभं (पोस्टर/स्टेटस)</option><option value="1344x768">आडवं (बॅनर)</option></select>
+<button class="btn" style="width:100%;margin-top:12px" onclick="mkimg()">🖼️ चित्र बनवा</button>
+<p class="note" id="ist"></p><img id="iout" style="width:100%;border-radius:12px;display:none" alt="">
+<a id="idl" class="btn" style="display:none;text-align:center;text-decoration:none;margin-top:8px" target="_blank" download="msf-chitra.jpg">⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)</a>
+<p class="note">ही मोफत बाहेरची सेवा आहे (Pollinations) — क्वालिटी साधारण, वर डावीकडे आपला MSF लोगो, खाली कोपऱ्यात त्यांचा छोटा लोगो, कधी कधी हळू. तुम्ही लिहिलेलं वर्णन त्यांच्याकडे जातं.</p>
+</section>
 <section id="ed" hidden>
 <input type="file" accept="image/*" onchange="load_(this)">
 <canvas id="cv" width="300" height="200"></canvas>
@@ -90,14 +99,39 @@ nav button.on{background:linear-gradient(90deg,#ffe27a,#f5c542)}
 const $=s=>document.querySelector(s),L=localStorage;
 const SYS="तू 'MSF – My Smart Friend' आहेस, S. R. उजगरे यांचा विश्वासू डिजिटल मित्र. नेहमी मराठीत, छोटं आणि स्पष्ट उत्तर दे. पत्र/अर्ज/तक्रार मसुदे, माहिती, तुलना, ट्रिप प्लॅन, भाषांतर, फोटो समजावणे यात मदत कर. कायदेशीर/आर्थिक बाबतीत तू वकील/सल्लागार नाहीस हे गरजेनुसार सांग.";
 let hist=JSON.parse(L.h||"[]"),img=null,src=null,rot=0,rem=JSON.parse(L.r||"[]");
-const tabs=[["home","🏠 होम"],["chat","💬 चॅट"],["ed","🎨 फोटो एडिट"],["rm","⏰ रिमाइंडर"],["set","⚙ सेटिंग"]];
+const tabs=[["home","🏠 होम"],["chat","💬 चॅट"],["img","🖼️ चित्र बनवा"],["ed","🎨 फोटो एडिट"],["rm","⏰ रिमाइंडर"],["set","⚙ सेटिंग"]];
 $('#nav').innerHTML=tabs.map(t=>`<button id="n_${t[0]}" onclick="show('${t[0]}')">${t[1]}</button>`).join('');
+
+async function mkimg(){let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');
+ const st=$('#ist'),im=$('#iout'),dl=$('#idl');im.style.display='none';dl.style.display='none';
+ if(L.k&&/[\u0900-\u097F]/.test(p)){st.textContent='⏳ वर्णन इंग्रजीत करतोय…';
+  for(const md of ['gemini-3.8-flash','gemini-3.7-flash','gemini-3.5-flash','gemini-3.8-flash-lite']){
+   try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),20000);
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${md}:generateContent`,{signal:ac.signal,method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':L.k},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Translate this image idea into one short, vivid English image-generation prompt. Reply with the prompt only: '+p}]}]})});
+    clearTimeout(tm);if(!r.ok)continue;const j=await r.json();const e=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim();if(e){p=e;break}}catch(e){}}}
+ const [w,h]=$('#isz').value.split('x');
+ const u='https://image.pollinations.ai/prompt/'+encodeURIComponent(p+', high quality, no text, no letters')+`?width=${w}&height=${h}&nologo=true&seed=${Date.now()%100000}`;
+ st.textContent='⏳ चित्र बनतंय… (20-60 सेकंद)';
+ const ok=(src,isData)=>{im.onload=()=>{st.textContent='✅ तयार! आवडलं नाही तर पुन्हा "चित्र बनवा" दाबा — नवीन चित्र येईल.';im.style.display='block';dl.href=src;dl.textContent=isData?'⬇️ डाउनलोड':'⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)';if(isData)dl.removeAttribute('target');dl.style.display='block'};im.src=src};
+ try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),90000);const r=await fetch(u,{signal:ac.signal});clearTimeout(tm);if(!r.ok)throw new Error('HTTP '+r.status);
+  const bm=await createImageBitmap(await r.blob());const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const x=c.getContext('2d');x.drawImage(bm,0,0);
+  await addLogo(x,c.width);ok(c.toDataURL('image/jpeg',0.92),true)}
+ catch(e){im.onerror=()=>{st.textContent='😔 चित्र आलं नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.'};ok(u,false)}}
+async function addLogo(x,W){const s=Math.round(W*0.075),pad=Math.round(s*0.35),m=Math.round(W*0.025);
+ x.font=`700 ${Math.round(s*0.62)}px "Noto Sans Devanagari",system-ui,sans-serif`;const t1='MSF',w1=x.measureText(t1).width;
+ x.font=`500 ${Math.round(s*0.3)}px system-ui,sans-serif`;const t2='My Smart Friend',w2=x.measureText(t2).width;
+ let ic=null;try{ic=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src='icon-192.png'})}catch(e){}
+ const icw=ic?s:0,bw=pad+icw+(ic?pad*0.7:0)+Math.max(w1,w2)+pad,bh=s+pad*1.2;
+ x.save();x.globalAlpha=.78;x.fillStyle='#0a1a3a';const r=bh/3;x.beginPath();x.roundRect?x.roundRect(m,m,bw,bh,r):x.rect(m,m,bw,bh);x.fill();x.globalAlpha=1;x.strokeStyle='#f5c542';x.lineWidth=Math.max(2,s*0.05);x.stroke();
+ if(ic)x.drawImage(ic,m+pad,m+pad*0.6,s,s);const tx=m+pad+icw+(ic?pad*0.7:0);
+ x.fillStyle='#f5c542';x.textBaseline='top';x.font=`700 ${Math.round(s*0.62)}px system-ui,sans-serif`;x.fillText(t1,tx,m+pad*0.55);
+ x.fillStyle='#fff';x.font=`500 ${Math.round(s*0.3)}px system-ui,sans-serif`;x.fillText(t2,tx,m+pad*0.55+s*0.68);x.restore()}
 function show(id){document.querySelectorAll('section').forEach(s=>s.hidden=s.id!=id);tabs.forEach(t=>$('#n_'+t[0]).classList.toggle('on',t[0]==id))}
 const T=[["🔍","माहिती शोध व तुलना","फोन, गाड्या, प्लॅन्स, किमती","चॅट","शोधून तुलना कर: "],
 ["✈️","प्रवास नियोजन","ट्रेन/फ्लाइट, हॉटेल, ठिकाणं","चॅट","माझ्यासाठी प्रवासाचा प्लॅन बनव: "],
 ["📞","फोन सहाय्य","लवकरच",0],["⏰","रिमाईंडर्स व दैनिक माहिती","सूचना","rm"],
 ["✉️","Gmail व Calendar","लवकरच",0],["📝","लेखन व डिझाईन","पत्र, अर्ज, रिझ्युमे","चॅट","मसुदा लिही: "],
-["🎨","क्रिएटिव्ह स्टुडिओ","फोटो एडिट, पोस्टर","ed"],["🌐","वेबसाईट व बुकिंग","लवकरच",0],
+["🎨","क्रिएटिव्ह स्टुडिओ","चित्र बनवा, फोटो एडिट","img"],["🌐","वेबसाईट व बुकिंग","लवकरच",0],
 ["🛒","ऑनलाईन खरेदी","लवकरच",0],["🗣️","भाषांतर व व्हॉइस","बोला, भाषांतर करा","चॅट","मराठीतून इंग्रजीत भाषांतर कर: "],
 ["🖼️","फोटो वाचन","प्रतिमा ओळखणे","चॅट","फोटो पाठवा 📷"],["⚙️","आणि बरंच काही…","तुमच्या सोयीसाठी","set"]];
 $('#tiles').innerHTML=T.map((t,i)=>`<button class="tile ${t[3]?'':'soon'}" onclick="tile(${i})"><span class="ico">${t[0]}</span><b>${t[1]}</b><small>${t[2]}</small></button>`).join('');
