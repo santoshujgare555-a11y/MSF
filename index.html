@@ -66,7 +66,15 @@ nav button.on{background:linear-gradient(90deg,#ffe27a,#f5c542)}
 <section id="img" hidden>
 <label>काय चित्र हवं? (मराठी किंवा इंग्रजी)</label>
 <textarea id="ip" rows="3" placeholder="उदा. सूर्योदयाच्या वेळी आळंदीचं मंदिर, इंद्रायणी नदी"></textarea>
-<label>आकार</label><select id="isz"><option value="1024x1024">चौकोनी (WhatsApp/Insta)</option><option value="768x1344">उभं (पोस्टर/स्टेटस)</option><option value="1344x768">आडवं (बॅनर)</option></select>
+<label>आकार निवडा 👇</label><input type="hidden" id="isz" value="1024x1024"><div id="szb" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<button class="szb on" data-v="1024x1024">⬛ चौकोनी 1:1<br><small>WhatsApp/Insta पोस्ट</small></button>
+<button class="szb" data-v="768x1344">📱 स्टेटस 9:16<br><small>WhatsApp/Insta स्टोरी</small></button>
+<button class="szb" data-v="832x1248">🖼️ पोस्टर 2:3<br><small>उभं पोस्टर</small></button>
+<button class="szb" data-v="1248x832">🏞️ आडवं 3:2<br><small>फोटो</small></button>
+<button class="szb" data-v="1344x768">📺 बॅनर 16:9<br><small>YouTube/Facebook</small></button>
+<button class="szb" data-v="1200x630">🔗 FB पोस्ट<br><small>1.91:1</small></button></div>
+<style>.szb{background:#12285a;color:#eef3ff;border:2px solid #27447f;border-radius:12px;padding:8px;font:inherit;font-size:14px}.szb small{color:#9db3e0}.szb.on{border-color:#f5c542;background:#2a3f9a;box-shadow:0 0 10px #f5c54288}</style>
+<script>document.querySelectorAll('.szb').forEach(b=>b.onclick=()=>{document.querySelectorAll('.szb').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('isz').value=b.dataset.v})</script>
 <button class="btn" style="width:100%;margin-top:12px" onclick="mkimg()">🖼️ चित्र बनवा</button>
 <p class="note" id="ist"></p><img id="iout" style="width:100%;border-radius:12px;display:none" alt="">
 <a id="idl" class="btn" style="display:none;text-align:center;text-decoration:none;margin-top:8px" target="_blank" download="msf-chitra.jpg">⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)</a>
