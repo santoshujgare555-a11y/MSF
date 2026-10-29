@@ -75,7 +75,7 @@ const T=[["🔍","माहिती शोध व तुलना","फोन, 
 $('#tiles').innerHTML=T.map((t,i)=>`<button class="tile ${t[3]?'':'soon'}" onclick="tile(${i})"><b>${t[0]} ${t[1]}</b><small>${t[2]}</small></button>`).join('');
 function tile(i){const t=T[i];if(!t[3])return alert('हे काम या फ्री आवृत्तीत अजून नाही.');
  if(t[3]=='चॅट'){show('chat');$('#q').value=t[4]||'';$('#q').focus()}else show(t[3])}
-function add(c,t){const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('#log').append(d);d.scrollIntoView()}
+function add(c,t){const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('#log').append(d);d.scrollIntoView();return d}
 hist.forEach(h=>add(h.role=='user'?'u':'b',h.parts[0].text));
 function pick(e){const f=e.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{img={m:f.type,d:r.result.split(',')[1]};$('#pv').textContent='📎 फोटो जोडला: '+f.name};r.readAsDataURL(f)}
 async function send(){const t=$('#q').value.trim();if(!t&&!img)return;
@@ -84,11 +84,22 @@ async function send(){const t=$('#q').value.trim();if(!t&&!img)return;
  add('u',t||'📷 फोटो');$('#q').value='';img=null;$('#pv').textContent='';
  const body={systemInstruction:{parts:[{text:SYS}]},contents:[...hist.slice(-20),{role:'user',parts}]};
  if(L.s=='1')body.tools=[{google_search:{}}];
- try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${L.m||'gemini-3.8-flash'}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':L.k},body:JSON.stringify(body)});
-  const j=await r.json();if(!r.ok){const em=j.error?.message||r.status;throw new Error(em+(r.status==404?' — सेटिंगमध्ये मॉडेलचं नाव तपासा (aistudio.google.com वर दिसतं ते)':''))}
-  const a=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim()||'…';
-  hist.push({role:'user',parts:[{text:t||'[फोटो]'}]},{role:'model',parts:[{text:a}]});L.h=JSON.stringify(hist.slice(-40));
-  add('b',a);if(L.v=='1')speak(a)}catch(e){add('b','चूक: '+e.message)}}
+ const wait=add('b','⏳ विचार करतोय…');
+ const ML=[...new Set([L.m,'gemini-3.8-flash','gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash','gemini-3.8-flash-lite','gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-3-flash'].filter(Boolean))];
+ let last='';
+ for(const md of ML){
+  try{const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${md}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':L.k},body:JSON.stringify(body)});
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok){last=(j.error?.message||('HTTP '+r.status));
+    if(r.status==400&&/api key|API_KEY/i.test(last)){wait.textContent='चूक: Key चुकीची दिसते — ⚙ सेटिंगमध्ये key पुन्हा पेस्ट करा.';return}
+    if(r.status==403){wait.textContent='चूक: Key ला परवानगी नाही (403). aistudio.google.com वर key तपासा.';return}
+    continue}
+   const a=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim()||'…';
+   hist.push({role:'user',parts:[{text:t||'[फोटो]'}]},{role:'model',parts:[{text:a}]});L.h=JSON.stringify(hist.slice(-40));
+   wait.textContent=a;if(L.v=='1')speak(a);return
+  }catch(e){last=e.message}
+ }
+ wait.textContent='सध्या Google चे सर्व मोफत मॉडेल बिझी आहेत 😔 1-2 मिनिटांनी पुन्हा पाठवा. ('+last+')'}
 function mic(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return alert('Chrome ब्राउझर वापरा');
  const r=new R();r.lang='mr-IN';r.onresult=e=>{$('#q').value+=e.results[0][0].transcript;send()};r.start()}
 function speak(t){const u=new SpeechSynthesisUtterance(t);u.lang='mr-IN';speechSynthesis.speak(u)}
