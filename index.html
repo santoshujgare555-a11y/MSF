@@ -111,7 +111,7 @@ let hist=JSON.parse(L.h||"[]"),img=null,src=null,rot=0,rem=JSON.parse(L.r||"[]")
 const tabs=[["home","🏠 होम"],["chat","💬 चॅट"],["img","🖼️ चित्र बनवा"],["ed","🎨 फोटो एडिट"],["rm","⏰ रिमाइंडर"],["set","⚙ सेटिंग"]];
 $('#nav').innerHTML=tabs.map(t=>`<button id="n_${t[0]}" onclick="show('${t[0]}')">${t[1]}</button>`).join('');
 
-async function mkimg(){let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');
+async function mkimg(){if(window._busy)return;let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');window._busy=1;setTimeout(()=>window._busy=0,180000);
  const st=$('#ist'),im=$('#iout'),dl=$('#idl');im.style.display='none';dl.style.display='none';
  if(L.k&&/[\u0900-\u097F]/.test(p)){st.textContent='⏳ वर्णन इंग्रजीत करतोय…';
   for(const md of ['gemini-3.8-flash','gemini-3.7-flash','gemini-3.5-flash','gemini-3.8-flash-lite']){
@@ -121,18 +121,20 @@ async function mkimg(){let p=$('#ip').value.trim();if(!p)return alert('आधी
  const [w,h]=$('#isz').value.split('x');
  const u='https://image.pollinations.ai/prompt/'+encodeURIComponent(p+', high quality, no text, no letters')+`?width=${w}&height=${h}&nologo=true&seed=${Date.now()%100000}`;
  st.textContent='⏳ चित्र बनतंय… (20-60 सेकंद)';
- const ok=(src,isData)=>{im.onload=()=>{st.textContent='✅ तयार! (मॉडेल: '+used+')'+(why?' — key अडचण: '+why:'')+' आवडलं नाही तर पुन्हा "चित्र बनवा" दाबा.';im.style.display='block';dl.href=src;dl.textContent=isData?'⬇️ डाउनलोड':'⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)';if(isData)dl.removeAttribute('target');dl.style.display='block'};im.src=src};
+ const ok=(src,isData)=>{im.onload=()=>{window._busy=0;st.textContent='✅ तयार! (मॉडेल: '+used+')'+(why?' — key अडचण: '+why:'')+' आवडलं नाही तर पुन्हा "चित्र बनवा" दाबा.';im.style.display='block';dl.href=src;dl.textContent=isData?'⬇️ डाउनलोड':'⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)';if(isData)dl.removeAttribute('target');dl.style.display='block'};im.src=src};
  let blob=null,used='मोफत (साधा)',why='';
  if(L.pk){for(const mdl of ['flux','zimage']){st.textContent='⏳ चांगल्या मॉडेलने ('+mdl+') चित्र बनतंय…';
    try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),120000);
-    const r=await fetch('https://gen.pollinations.ai/image/'+encodeURIComponent(p+', high quality, highly detailed, no text, no letters')+`?model=${mdl}&width=${w}&height=${h}&nologo=true&seed=${Date.now()%100000}`,{signal:ac.signal,headers:{Authorization:'Bearer '+L.pk}});clearTimeout(tm);
+    const r=await fetch('https://gen.pollinations.ai/image/'+encodeURIComponent(p+', high quality, highly detailed, no text, no letters')+`?model=${mdl}&width=${w}&height=${h}&nologo=true&seed=${Date.now()%100000}`,{signal:ac.signal,headers:{Authorization:'Bearer '+String(L.pk).replace(/[^A-Za-z0-9_\-.]/g,'')}});clearTimeout(tm);
     if(r.ok&&(r.headers.get('content-type')||'').startsWith('image')){blob=await r.blob();used=mdl;break}
     const j=await r.json().catch(()=>({}));why=mdl+': '+(j.error?.message||('HTTP '+r.status)).slice(0,140)}catch(e){why=mdl+': '+e.message}}
   if(!blob)st.textContent='⏳ key ने जमलं नाही, मोफत साध्या मॉडेलने बनवतोय…'}
- try{if(!blob){const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),90000);const r=await fetch(u,{signal:ac.signal});clearTimeout(tm);if(!r.ok)throw new Error('HTTP '+r.status);blob=await r.blob()}
+ try{if(!blob){const wait=45-Math.floor((Date.now()-(+L.lastFree||0))/1000);
+   if(wait>0){for(let s=wait;s>0;s--){st.textContent='⏳ मोफत सेवेत 45 सेकंदात 1 चित्र — '+s+' सेकंद थांबा…';await new Promise(r=>setTimeout(r,1000))}}
+   L.lastFree=Date.now();st.textContent='⏳ चित्र बनतंय… (20-60 सेकंद)';const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),90000);const r=await fetch(u,{signal:ac.signal});clearTimeout(tm);if(!r.ok)throw new Error('HTTP '+r.status);blob=await r.blob()}
   const bm=await createImageBitmap(blob);const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const x=c.getContext('2d');x.drawImage(bm,0,0);
   await addLogo(x,c.width);ok(c.toDataURL('image/jpeg',0.92),true)}
- catch(e){im.onerror=()=>{st.textContent='😔 चित्र आलं नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.'};ok(u,false)}}
+ catch(e){im.onerror=()=>{window._busy=0;st.textContent='😔 चित्र आलं नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.'};ok(u,false)}}
 async function addLogo(x,W){const s=Math.round(W*0.075),pad=Math.round(s*0.35),m=Math.round(W*0.025);
  x.font=`700 ${Math.round(s*0.62)}px "Noto Sans Devanagari",system-ui,sans-serif`;const t1='MSF',w1=x.measureText(t1).width;
  x.font=`500 ${Math.round(s*0.3)}px system-ui,sans-serif`;const t2='My Smart Friend',w2=x.measureText(t2).width;
@@ -195,6 +197,6 @@ function addR(){const t=new Date($('#rd').value).getTime(),x=$('#rt').value.trim
  if('Notification'in window&&Notification.permission=='default')Notification.requestPermission();rem.push({t,x});L.r=JSON.stringify(rem);$('#rt').value='';rdraw()}
 setInterval(()=>{const n=Date.now(),due=rem.filter(r=>r.t<=n);if(!due.length)return;rem=rem.filter(r=>r.t>n);L.r=JSON.stringify(rem);rdraw();
  due.forEach(r=>{if('Notification'in window&&Notification.permission=='granted')new Notification('⏰ MSF',{body:r.x});else alert('⏰ '+r.x)})},15000);
-function saveS(){L.k=$('#k').value.trim()||L.k||'';L.pk=$('#pk').value.trim();L.m=$('#mo').value.trim();L.s=$('#se').checked?'1':'0';L.v=$('#sp').checked?'1':'0';alert('सेव्ह झालं');show('chat')}
+function saveS(){L.k=$('#k').value.trim()||L.k||'';L.pk=$('#pk').value.replace(/[^A-Za-z0-9_\-.]/g,'');L.m=$('#mo').value.trim();L.s=$('#se').checked?'1':'0';L.v=$('#sp').checked?'1':'0';alert('सेव्ह झालं');show('chat')}
 $('#k').value=L.k||'';$('#pk').value=L.pk||'';$('#mo').value=L.m||'';$('#se').checked=L.s=='1';$('#sp').checked=L.v=='1';rdraw();show('home');
 </script></body></html>
