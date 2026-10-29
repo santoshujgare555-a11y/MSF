@@ -103,14 +103,16 @@ const T=[["🔍","माहिती शोध व तुलना","फोन, 
 $('#tiles').innerHTML=T.map((t,i)=>`<button class="tile ${t[3]?'':'soon'}" onclick="tile(${i})"><span class="ico">${t[0]}</span><b>${t[1]}</b><small>${t[2]}</small></button>`).join('');
 function tile(i){const t=T[i];if(!t[3])return alert('हे काम या फ्री आवृत्तीत अजून नाही.');
  if(t[3]=='चॅट'){show('chat');$('#q').value=t[4]||'';$('#q').focus()}else show(t[3])}
-function add(c,t){const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('#log').append(d);d.scrollIntoView();return d}
+function md_(t){return String(t).replace(/\*\*(.+?)\*\*/g,'$1').replace(/^\s*[\*\-]\s+/gm,'• ').replace(/^#+\s*/gm,'')}
+function add(c,t){t=md_(t);const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('#log').append(d);d.scrollIntoView();return d}
 hist.forEach(h=>add(h.role=='user'?'u':'b',h.parts[0].text));
 function pick(e){const f=e.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{img={m:f.type,d:r.result.split(',')[1]};$('#pv').textContent='📎 फोटो जोडला: '+f.name};r.readAsDataURL(f)}
 async function send(){const t=$('#q').value.trim();if(!t&&!img)return;
  if(!L.k){show('set');return alert('आधी Gemini key टाका')}
  const parts=[];if(img)parts.push({inlineData:{mimeType:img.m,data:img.d}});parts.push({text:t||'हे काय आहे ते समजावून सांग.'});
  add('u',t||'📷 फोटो');$('#q').value='';img=null;$('#pv').textContent='';
- const body={systemInstruction:{parts:[{text:SYS}]},contents:[...hist.slice(-20),{role:'user',parts}]};
+ const now=new Date(),dt=now.toLocaleString('mr-IN',{timeZone:'Asia/Kolkata',weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'numeric',minute:'2-digit'});
+ const body={systemInstruction:{parts:[{text:SYS+' आजची तारीख व वेळ (भारत): '+dt+'. तारीख/वार/वेळ यासाठी हीच माहिती वापर. पंचांग, चंद्रोदय, बातम्या, भाव यासारखी ताजी माहिती अंदाजे असेल तर तसं स्पष्ट सांग आणि ⚙ सेटिंगमधील "इंटरनेट शोध" चालू करायला सुचव. उत्तरात ** किंवा # अशी चिन्हं वापरू नकोस.'}]},contents:[...hist.slice(-20),{role:'user',parts}]};
  if(L.s=='1')body.tools=[{google_search:{}}];
  const wait=add('b','⏳ विचार करतोय…');
  const ML=[...new Set([L.m,'gemini-3.8-flash','gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash','gemini-3.8-flash-lite','gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-3-flash'].filter(Boolean))];
@@ -124,7 +126,7 @@ async function send(){const t=$('#q').value.trim();if(!t&&!img)return;
     continue}
    const a=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim()||'…';
    hist.push({role:'user',parts:[{text:t||'[फोटो]'}]},{role:'model',parts:[{text:a}]});L.h=JSON.stringify(hist.slice(-40));
-   wait.textContent=a;if(L.v=='1')speak(a);return
+   wait.textContent=md_(a);if(L.v=='1')speak(a);return
   }catch(e){last=e.name=='AbortError'?(md+': 30 सेकंदात उत्तर नाही'):e.message}
  }
  wait.textContent='सध्या Google चे सर्व मोफत मॉडेल बिझी आहेत 😔 1-2 मिनिटांनी पुन्हा पाठवा. ('+last+')'}
