@@ -1,0 +1,13 @@
+{
+ "name": "MSF My Smart Friend",
+ "short_name": "MSF",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0a1a3a",
+ "theme_color": "#0a1a3a",
+ "lang": "mr",
+ "description": "My Smart Friend",
+ "icons": [
+  {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+  {"src": "icon-512.png", 
