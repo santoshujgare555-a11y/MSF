@@ -78,7 +78,7 @@ nav button.on{background:linear-gradient(90deg,#ffe27a,#f5c542)}
 <button class="btn" style="width:100%;margin-top:12px" onclick="mkimg()">🖼️ चित्र बनवा</button>
 <p class="note" id="ist"></p><img id="iout" style="width:100%;border-radius:12px;display:none" alt="">
 <a id="idl" class="btn" style="display:none;text-align:center;text-decoration:none;margin-top:8px" target="_blank" download="msf-chitra.jpg">⬇️ मोठं उघडा (लांब दाबून सेव्ह करा)</a>
-<p class="note">ही मोफत बाहेरची सेवा आहे (Pollinations) — क्वालिटी साधारण, वर डावीकडे आपला MSF लोगो, खाली कोपऱ्यात त्यांचा छोटा लोगो, कधी कधी हळू. तुम्ही लिहिलेलं वर्णन त्यांच्याकडे जातं.</p>
+<p class="note">ही मोफत बाहेरची सेवा आहे (Pollinations) — क्वालिटी साधारण, खाली कोपऱ्यात त्यांचा छोटा लोगो, कधी कधी हळू. तुम्ही लिहिलेलं वर्णन त्यांच्याकडे जातं.</p>
 </section>
 <section id="ed" hidden>
 <input type="file" accept="image/*" onchange="load_(this)">
@@ -114,8 +114,8 @@ $('#nav').innerHTML=tabs.map(t=>`<button id="n_${t[0]}" onclick="show('${t[0]}')
 async function mkimg(){if(window._busy)return;let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');window._busy=1;setTimeout(()=>window._busy=0,180000);
  const st=$('#ist'),im=$('#iout'),dl=$('#idl');im.style.display='none';dl.style.display='none';
  if(L.k&&/[\u0900-\u097F]/.test(p)){st.textContent='⏳ वर्णन इंग्रजीत करतोय…';
-  for(const md of ['gemini-3.8-flash','gemini-3.7-flash','gemini-3.5-flash','gemini-3.8-flash-lite']){
-   try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),20000);
+  for(const md of ['gemini-3.8-flash-lite','gemini-3.5-flash-lite']){
+   try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),10000);
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${md}:generateContent`,{signal:ac.signal,method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':L.k},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Translate this image idea into one short, vivid English image-generation prompt. Reply with the prompt only: '+p}]}]})});
     clearTimeout(tm);if(!r.ok)continue;const j=await r.json();const e=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim();if(e){p=e;break}}catch(e){}}}
  const [w,h]=$('#isz').value.split('x');
@@ -133,7 +133,7 @@ async function mkimg(){if(window._busy)return;let p=$('#ip').value.trim();if(!p)
    if(wait>0){for(let s=wait;s>0;s--){st.textContent='⏳ मोफत सेवेत 45 सेकंदात 1 चित्र — '+s+' सेकंद थांबा…';await new Promise(r=>setTimeout(r,1000))}}
    L.lastFree=Date.now();st.textContent='⏳ चित्र बनतंय… (20-60 सेकंद)';const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),90000);const r=await fetch(u,{signal:ac.signal});clearTimeout(tm);if(!r.ok)throw new Error('HTTP '+r.status);blob=await r.blob()}
   const bm=await createImageBitmap(blob);const c=document.createElement('canvas');c.width=bm.width;c.height=bm.height;const x=c.getContext('2d');x.drawImage(bm,0,0);
-  await addLogo(x,c.width);ok(c.toDataURL('image/jpeg',0.92),true)}
+  ok(c.toDataURL('image/jpeg',0.92),true)}
  catch(e){im.onerror=()=>{window._busy=0;st.textContent='😔 चित्र आलं नाही. थोड्या वेळाने पुन्हा प्रयत्न करा.'};ok(u,false)}}
 async function addLogo(x,W){const s=Math.round(W*0.075),pad=Math.round(s*0.35),m=Math.round(W*0.025);
  x.font=`700 ${Math.round(s*0.62)}px "Noto Sans Devanagari",system-ui,sans-serif`;const t1='MSF',w1=x.measureText(t1).width;
