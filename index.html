@@ -111,13 +111,15 @@ let hist=JSON.parse(L.h||"[]"),img=null,src=null,rot=0,rem=JSON.parse(L.r||"[]")
 const tabs=[["home","🏠 होम"],["chat","💬 चॅट"],["img","🖼️ चित्र बनवा"],["ed","🎨 फोटो एडिट"],["rm","⏰ रिमाइंडर"],["set","⚙ सेटिंग"]];
 $('#nav').innerHTML=tabs.map(t=>`<button id="n_${t[0]}" onclick="show('${t[0]}')">${t[1]}</button>`).join('');
 
-async function mkimg(){if(window._busy)return;let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');window._busy=1;setTimeout(()=>window._busy=0,180000);
+async function mkimg(){if(window._busy&&Date.now()-window._busy<150000){$('#ist').textContent='⏳ आधीचं चित्र बनतंय, थोडं थांबा…';return}let p=$('#ip').value.trim();if(!p)return alert('आधी वर्णन लिहा');window._busy=Date.now();
+ try{await mkimg2(p)}catch(e){$('#ist').textContent='😔 अडचण: '+e.message+' — पुन्हा दाबा.'}finally{window._busy=0}}
+async function mkimg2(p){
  const st=$('#ist'),im=$('#iout'),dl=$('#idl');im.style.display='none';dl.style.display='none';
- if(L.k&&/[\u0900-\u097F]/.test(p)){st.textContent='⏳ वर्णन इंग्रजीत करतोय…';
+ if(L.k&&/[\u0900-\u097F]/.test(p)){st.textContent='⏳ वर्णन इंग्रजीत करतोय…';const t0=Date.now();
   for(const md of ['gemini-3.8-flash-lite','gemini-3.5-flash-lite']){
-   try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),10000);
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${md}:generateContent`,{signal:ac.signal,method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':L.k},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Translate this image idea into one short, vivid English image-generation prompt. Reply with the prompt only: '+p}]}]})});
-    clearTimeout(tm);if(!r.ok)continue;const j=await r.json();const e=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim();if(e){p=e;break}}catch(e){}}}
+   if(Date.now()-t0>12000)break;try{const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),8000);
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${md}:generateContent`,{signal:ac.signal,method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':String(L.k).replace(/[^A-Za-z0-9_\-.]/g,'')},body:JSON.stringify({contents:[{role:'user',parts:[{text:'Translate this image idea into one short, vivid English image-generation prompt. Reply with the prompt only: '+p}]}]})});
+    if(!r.ok){clearTimeout(tm);continue}const j=await r.json();clearTimeout(tm);const e=(j.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').trim();if(e){p=e;break}}catch(e){}}}
  const [w,h]=$('#isz').value.split('x');
  const u='https://image.pollinations.ai/prompt/'+encodeURIComponent(p+', high quality, no text, no letters')+`?width=${w}&height=${h}&nologo=true&seed=${Date.now()%100000}`;
  st.textContent='⏳ चित्र बनतंय… (20-60 सेकंद)';
